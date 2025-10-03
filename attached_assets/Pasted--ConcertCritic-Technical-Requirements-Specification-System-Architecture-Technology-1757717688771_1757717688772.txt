@@ -1,0 +1,478 @@
+# ConcertCritic Technical Requirements Specification
+
+## 🏗️ System Architecture
+
+### Technology Stack
+- **Frontend Framework**: React.js with TypeScript
+- **Backend Framework**: Node.js with Express.js
+- **Database**: PostgreSQL
+- **Authentication**: Firebase Authentication or JWT
+- **External APIs**: Ticketmaster Discovery API
+- **File Storage**: Cloudinary or Firebase Storage
+- **Hosting**: Replit
+- **Real-time Features**: Socket.io (for notifications)
+
+### Development Environment
+- **Package Manager**: npm or yarn
+- **CSS Framework**: Tailwind CSS (matching web app design)
+- **State Management**: React Context API or Redux Toolkit
+- **HTTP Client**: Axios
+- **Form Handling**: React Hook Form
+- **Testing**: Jest + React Testing Library
+
+---
+
+## 🔐 Authentication Requirements
+
+### Authentication Methods
+1. **Email/Password Registration**
+   - Email verification required
+   - Password strength validation (8+ characters, mixed case, numbers, symbols)
+   - Forgot password with email reset
+
+2. **Social Login Options**
+   - Google Sign-In
+   - Facebook Login  
+   - Apple Sign-In (for iOS compatibility)
+
+3. **Security Features**
+   - JWT tokens with refresh mechanism
+   - Rate limiting on auth endpoints
+   - Account lockout after failed attempts
+   - Two-factor authentication (future enhancement)
+
+### User Session Management
+- Secure token storage
+- Automatic token refresh
+- Session timeout handling
+- Multi-device login support
+- Logout from all devices option
+
+---
+
+## 🗄️ Database Schema Requirements
+
+### User Management Tables
+
+#### Users Table
+```
+- id (Primary Key)
+- firebase_uid (Unique, if using Firebase)
+- email (Unique, Required)
+- username (Unique, Required, 3-30 characters)
+- display_name (Optional, 1-100 characters)
+- bio (Optional, max 500 characters)
+- profile_picture_url
+- location (City level)
+- date_joined
+- is_private (Boolean, default false)
+- is_verified (Boolean, default false)
+- favorite_genres (Array)
+- total_concerts_attended (Integer, default 0)
+- total_reviews_written (Integer, default 0)
+- created_at
+- updated_at
+```
+
+#### User Preferences Table
+```
+- id (Primary Key)
+- user_id (Foreign Key)
+- notifications_enabled (Boolean)
+- email_notifications (Boolean)
+- location_sharing (Boolean)
+- dark_mode (Boolean)
+- privacy_level (public/friends/private)
+- created_at
+```
+
+### Social Features Tables
+
+#### User Follows Table
+```
+- id (Primary Key)
+- follower_id (Foreign Key to users)
+- following_id (Foreign Key to users)
+- created_at
+- Unique constraint on (follower_id, following_id)
+- Check constraint (follower_id != following_id)
+```
+
+#### Follow Requests Table
+```
+- id (Primary Key)
+- requester_id (Foreign Key to users)
+- requested_id (Foreign Key to users)
+- status (pending/accepted/rejected)
+- created_at
+- updated_at
+- Unique constraint on (requester_id, requested_id)
+```
+
+#### User Blocks Table
+```
+- id (Primary Key)
+- blocker_id (Foreign Key to users)
+- blocked_id (Foreign Key to users)
+- created_at
+- Unique constraint on (blocker_id, blocked_id)
+```
+
+### Concert & Venue Data Tables
+
+#### Venues Table
+```
+- id (Primary Key)
+- ticketmaster_id (Unique)
+- name (Required)
+- address
+- city
+- state
+- country
+- postal_code
+- latitude (Decimal)
+- longitude (Decimal)
+- capacity (Integer)
+- venue_type (theater/arena/club/outdoor/festival)
+- website
+- phone
+- description
+- amenities (Array: parking, food, accessibility, etc.)
+- average_rating (Decimal 3,2)
+- total_reviews (Integer)
+- created_at
+- updated_at
+```
+
+#### Artists Table
+```
+- id (Primary Key)
+- ticketmaster_id (Unique)
+- name (Required)
+- genre
+- image_url
+- spotify_id
+- website
+- biography
+- created_at
+```
+
+#### Events Table
+```
+- id (Primary Key)
+- ticketmaster_id (Unique)
+- name (Required)
+- description
+- event_date (Timestamp)
+- doors_time (Time)
+- venue_id (Foreign Key)
+- primary_artist_id (Foreign Key)
+- genre
+- ticket_url
+- min_price (Decimal)
+- max_price (Decimal)
+- age_restriction
+- status (onsale/offsale/cancelled/postponed)
+- image_url
+- created_at
+- updated_at
+```
+
+#### Event Performers Table
+```
+- id (Primary Key)
+- event_id (Foreign Key)
+- artist_id (Foreign Key)
+- performance_order (Integer: 1=headliner, 2=opener, etc.)
+- created_at
+```
+
+### Reviews & Ratings Tables
+
+#### Concert Reviews Table
+```
+- id (Primary Key)
+- user_id (Foreign Key)
+- event_id (Foreign Key)
+- overall_rating (Decimal 2,1, range 1-5)
+- performance_rating (Decimal 2,1, range 1-5)
+- sound_rating (Decimal 2,1, range 1-5)
+- atmosphere_rating (Decimal 2,1, range 1-5)
+- value_rating (Decimal 2,1, range 1-5)
+- review_text (50-1000 characters)
+- attended_date (Date)
+- is_verified (Boolean)
+- likes_count (Integer, default 0)
+- created_at
+- updated_at
+- Unique constraint on (user_id, event_id)
+```
+
+#### Venue Reviews Table
+```
+- id (Primary Key)
+- user_id (Foreign Key)
+- venue_id (Foreign Key)
+- overall_rating (Decimal 2,1, range 1-5)
+- sound_rating (Decimal 2,1, range 1-5)
+- sightlines_rating (Decimal 2,1, range 1-5)
+- accessibility_rating (Decimal 2,1, range 1-5)
+- amenities_rating (Decimal 2,1, range 1-5)
+- staff_rating (Decimal 2,1, range 1-5)
+- review_text
+- likes_count (Integer, default 0)
+- created_at
+- updated_at
+- Unique constraint on (user_id, venue_id)
+```
+
+#### Review Photos Table
+```
+- id (Primary Key)
+- review_id (Integer)
+- review_type (concert/venue)
+- photo_url (Required)
+- caption
+- created_at
+```
+
+#### Review Likes Table
+```
+- id (Primary Key)
+- user_id (Foreign Key)
+- review_id (Integer)
+- review_type (concert/venue)
+- created_at
+- Unique constraint on (user_id, review_id, review_type)
+```
+
+---
+
+## 🔍 Ticketmaster API Integration Requirements
+
+### API Credentials Setup
+- Ticketmaster API Key (Consumer Key)
+- Rate limiting: 5000 requests per day
+- API Secret for enhanced features
+
+### Required API Endpoints
+
+#### Event Discovery
+- **Search Events**: `/discovery/v2/events.json`
+  - Parameters: keyword, city, state, country, radius, date range, genre
+  - Pagination support
+  - Sorting options
+
+- **Event Details**: `/discovery/v2/events/{id}.json`
+  - Complete event information
+  - Performer details
+  - Venue information
+  - Ticket availability
+
+#### Venue Information
+- **Search Venues**: `/discovery/v2/venues.json`
+- **Venue Details**: `/discovery/v2/venues/{id}.json`
+  - Address and location data
+  - Capacity and amenities
+  - Upcoming events
+
+#### Location-Based Discovery
+- **Geolocation Search**: Support for latitude/longitude
+- **Radius-based Search**: Distance filtering (miles/kilometers)
+- **City/State Search**: Text-based location search
+
+### Data Synchronization Requirements
+- **Caching Strategy**: Store frequently accessed events/venues locally
+- **Update Frequency**: Daily sync for event status changes
+- **Data Mapping**: Transform Ticketmaster data to internal schema
+- **Error Handling**: Graceful fallbacks when API is unavailable
+
+---
+
+## 📱 Core Feature Requirements
+
+### Discover Tab Functionality
+1. **Location-Based Discovery**
+   - User location detection (with permission)
+   - Nearby events within configurable radius
+   - City/state manual selection
+
+2. **Search & Filtering**
+   - Text search (artist, venue, event name)
+   - Date range filtering
+   - Genre/category filtering
+   - Price range filtering
+   - Distance filtering
+
+3. **Personalized Recommendations**
+   - Based on past attendance
+   - Friend activity influence
+   - Genre preferences
+   - Location history
+
+4. **Event Display**
+   - Grid/list view toggle
+   - Essential info: artist, venue, date, price
+   - Save to wishlist functionality
+   - Share event capability
+
+### User Profile Features
+1. **Profile Information**
+   - Editable profile details
+   - Profile photo upload/crop
+   - Privacy settings management
+   - Account verification status
+
+2. **Concert History**
+   - Chronological list of attended concerts
+   - Filterable by year, venue, artist, genre
+   - Statistics dashboard
+   - Export functionality
+
+3. **Social Stats**
+   - Follower/following counts
+   - Total reviews written
+   - Concert attendance streak
+   - Favorite venues/artists
+
+4. **Follow System**
+   - Follow/unfollow users
+   - Follow request handling (private accounts)
+   - Mutual friends display
+   - Block user functionality
+
+### Review System Requirements
+1. **Review Creation**
+   - Multi-criteria rating system (1-5 stars)
+   - Photo upload (max 5 per review)
+   - Rich text editing
+   - Draft saving capability
+
+2. **Review Interaction**
+   - Like/unlike reviews
+   - Comment on reviews
+   - Share reviews
+   - Report inappropriate content
+
+3. **Review Verification**
+   - Ticket stub photo verification
+   - Location-based verification
+   - Manual verification by moderators
+
+---
+
+## 🔔 Notification System Requirements
+
+### Push Notification Types
+- New follower notifications
+- Friend activity updates
+- Concert reminders
+- Review likes/comments
+- Event recommendations
+
+### Notification Settings
+- Granular notification preferences
+- Quiet hours configuration
+- Delivery method selection (push/email)
+- Frequency controls
+
+---
+
+## 🔒 Security & Privacy Requirements
+
+### Data Protection
+- GDPR compliance
+- User data encryption
+- Secure file upload handling
+- SQL injection prevention
+- XSS protection
+
+### Privacy Controls
+- Account visibility settings
+- Activity sharing preferences
+- Location data handling
+- Right to data deletion
+- Data export functionality
+
+### Content Moderation
+- Automated content filtering
+- User reporting system
+- Manual review process
+- Community guidelines enforcement
+
+---
+
+## 📊 Analytics & Monitoring Requirements
+
+### User Analytics
+- User engagement metrics
+- Feature usage tracking
+- Retention rate monitoring
+- Performance metrics
+- Personal analytics generation (automated)
+- Accomplishment tracking and badge awarding
+- Year-end review compilation
+
+### Business Intelligence
+- Concert attendance trends by city/venue
+- Genre popularity analysis
+- Venue performance metrics
+- User spending pattern analysis
+- Social engagement insights
+- Review sentiment analysis
+
+### Automated Analytics Processing
+- **Daily Jobs**: Update user streaks, calculate new accomplishments
+- **Weekly Jobs**: Generate personal insights, update leaderboards
+- **Monthly Jobs**: Compile spending reports, venue performance analysis
+- **Yearly Jobs**: Create year in review, update lifetime statistics
+
+### System Monitoring
+- API response times
+- Database performance
+- Error rate tracking
+- Uptime monitoring
+
+---
+
+## 🚀 Performance Requirements
+
+### Response Times
+- Page load: < 3 seconds
+- API responses: < 1 second
+- Image loading: Progressive/lazy loading
+- Search results: < 2 seconds
+
+### Scalability
+- Support for 10,000+ concurrent users
+- Database optimization for large datasets
+- CDN for static assets
+- Caching strategies for API responses
+
+### Mobile Optimization
+- Responsive design for all screen sizes
+- Touch-friendly interface
+- Offline functionality for core features
+- Progressive Web App capabilities
+
+---
+
+## 🔧 Development & Deployment Requirements
+
+### Environment Configuration
+- Development, staging, and production environments
+- Environment variable management
+- Database migration system
+- Automated testing pipeline
+
+### Deployment Pipeline
+- Continuous Integration/Continuous Deployment (CI/CD)
+- Automated testing before deployment
+- Database backup strategies
+- Rollback capabilities
+
+### Monitoring & Logging
+- Application performance monitoring
+- Error tracking and alerting
+- User activity logging
+- Security event monitoring
